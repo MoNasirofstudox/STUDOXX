@@ -45,10 +45,28 @@ function HODLecturerAssignment({ school, user, userDept }) {
       if (userDept) all=all.filter(o=>o.dept_id===userDept.id)
       setOfferings(all)
     }
-    let q = supabase.from('school_memberships').select('user_id, profiles(first_name,last_name)').eq('school_id',school.id).eq('role','lecturer').eq('is_active',true)
-    if (userDept) q = q.eq('department_id',userDept.id)
-    const { data:l } = await q
-    setLecturers(l||[])
+    // Fetch all lecturers in school — no department filter since lecturers may not have dept set
+    const { data:memberships } = await supabase
+      .from('school_memberships')
+      .select('user_id')
+      .eq('school_id',school.id)
+      .eq('role','lecturer')
+      .eq('is_active',true)
+
+    if (memberships && memberships.length > 0) {
+      const userIds = memberships.map(m => m.user_id)
+      const { data:profiles } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', userIds)
+      const lecturerList = (memberships||[]).map(m => ({
+        user_id: m.user_id,
+        profiles: (profiles||[]).find(p => p.id === m.user_id) || null
+      }))
+      setLecturers(lecturerList)
+    } else {
+      setLecturers([])
+    }
     setLoading(false)
   }
 

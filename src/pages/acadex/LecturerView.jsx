@@ -16,7 +16,12 @@ export default function LecturerView({ school }) {
     const { data:sem } = await supabase.rpc('get_current_semester',{ p_school_id:school.id })
     setSemester(sem)
     if (sem) {
-      const { data } = await supabase.rpc('get_my_offerings',{ p_school_id:school.id, p_semester_id:sem.id })
+      const { data:{ user:authUser } } = await supabase.auth.getUser()
+      const { data } = await supabase.rpc('get_my_offerings',{
+        p_school_id: school.id,
+        p_semester_id: sem.id,
+        p_user_id: authUser.id
+      })
       setOfferings(data||[])
     }
     setLoading(false)
