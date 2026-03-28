@@ -89,7 +89,9 @@ export default function AcadexApp({ user, onBackToHub }) {
 
   async function init() {
     setLoading(true)
-    const { data } = await supabase.from('school_memberships').select(`role, schools(id,name,slug,state,level)`).eq('user_id',user.id).eq('is_active',true)
+    const { data } = await supabase.from('school_memberships')
+      .select(`role, schools!school_memberships_school_id_fkey(id,name,slug,state,level)`)
+      .eq('user_id',user.id).eq('is_active',true)
     const list=(data||[]).filter(m=>m.schools)
     setSchools(list)
     if (list.length===0) { setNoSchool(true); setLoading(false); return }
@@ -107,7 +109,7 @@ export default function AcadexApp({ user, onBackToHub }) {
       setSchool(data)
       localStorage.setItem(ACADEX_LAST_SCHOOL_KEY,slug)
       const { data:mem } = await supabase.from('school_memberships')
-        .select('department_id, departments(id,name,code)')
+        .select('department_id, departments!school_memberships_department_id_fkey(id,name,code)')
         .eq('user_id',user.id).eq('school_id',data.id).eq('is_active',true).maybeSingle()
       setUserDept(mem?.departments||null)
     }
