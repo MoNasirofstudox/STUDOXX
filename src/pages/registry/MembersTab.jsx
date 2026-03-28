@@ -20,7 +20,7 @@ export default function MembersTab({ school, isAdmin }) {
     setLoading(true)
     const [m,d] = await Promise.all([
       supabase.from('school_memberships')
-        .select(`role, joined_at, department_id, profiles(first_name,last_name,email), departments(name)`)
+      .select(`role, joined_at, department_id, profiles!school_memberships_user_id_fkey(first_name,last_name,email), departments(name)`)
         .eq('school_id',school.id).eq('is_active',true).order('joined_at',{ascending:false}),
       supabase.from('departments').select('id,name,code').eq('school_id',school.id).eq('is_active',true).order('name'),
     ])
