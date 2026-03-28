@@ -9,7 +9,6 @@ import HODView          from './HODView.jsx'
 import ManagementView   from './ManagementView.jsx'
 import S from '../../styles.js'
 
-// ─── HEADER ───────────────────────────────────────────────────
 function AcadexHeader({ onBack, backLabel, school, schools, onSwitchSchool, isAdmin }) {
   const app = APPS.acadex
   const [showPicker,setShowPicker]=useState(false)
@@ -50,7 +49,6 @@ function AcadexHeader({ onBack, backLabel, school, schools, onSwitchSchool, isAd
   )
 }
 
-// ─── HOME — ROLE ROUTER ───────────────────────────────────────
 function AcadexHome({ school, user, schools, userDept, onSwitchSchool, onBackToHub }) {
   const role          = school.your_role
   const isAdmin       = role==='school_admin'
@@ -79,7 +77,6 @@ function AcadexHome({ school, user, schools, userDept, onSwitchSchool, onBackToH
   )
 }
 
-// ─── ROOT ACADEX APP ──────────────────────────────────────────
 export default function AcadexApp({ user, onBackToHub }) {
   const [school,setSchool]=useState(null); const [loading,setLoading]=useState(true)
   const [schools,setSchools]=useState([]); const [noSchool,setNoSchool]=useState(false)
@@ -108,10 +105,27 @@ export default function AcadexApp({ user, onBackToHub }) {
     if (!error&&data) {
       setSchool(data)
       localStorage.setItem(ACADEX_LAST_SCHOOL_KEY,slug)
-      const { data:mem } = await supabase.from('school_memberships')
-        .select('department_id, departments!school_memberships_department_id_fkey(id,name,code)')
-        .eq('user_id',user.id).eq('school_id',data.id).eq('is_active',true).maybeSingle()
-      setUserDept(mem?.departments||null)
+
+      // Fetch memberships separately to avoid ambiguous FK issue
+      const { data:mems } = await supabase.from('school_memberships')
+        .select('role, department_id')
+        .eq('user_id',user.id)
+        .eq('school_id',data.id)
+        .eq('is_active',true)
+
+      // Find the membership that has a department (hod/exam_officer)
+      const memWithDept = (mems||[]).find(m => m.department_id)
+
+      if (memWithDept?.department_id) {
+        const { data:dept } = await supabase
+          .from('departments')
+          .select('id,name,code')
+          .eq('id', memWithDept.department_id)
+          .maybeSingle()
+        setUserDept(dept || null)
+      } else {
+        setUserDept(null)
+      }
     }
   }
 
